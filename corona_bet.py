@@ -21,9 +21,6 @@ class Bet:
         return (f'Bet("{self.person}", ' \
                 f'"{datetime.datetime.strftime(self.min_time, "%d/%m/%Y")}")')
 
-    def __hash__(self):
-        return hash((self.person, self.min_time))
-
 
 def sort_closest(now: datetime.datetime, bets: Iterable[Bet]) -> List[Bet]:
     return sorted(bets, key=lambda b: b.timedelta(now))
