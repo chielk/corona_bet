@@ -1,6 +1,10 @@
 import csv
 import datetime
-from typing import Iterable, List
+import argparse
+from typing import Iterable, List, Tuple, Union
+
+
+timespan = Tuple[datetime.datetime, datetime.datetime]
 
 
 class Bet:
@@ -18,31 +22,36 @@ class Bet:
         return time - self.max_time
 
     def __str__(self):
+        date_str = datetime.datetime.strftime(self.min_time, "%d-%m-%Y")
+        return f"{self.person}'s bet on {date_str}"
+
+    def __repr__(self):
         return (f'Bet("{self.person}", ' \
-                f'"{datetime.datetime.strftime(self.min_time, "%d/%m/%Y")}")')
+                f'"{datetime.datetime.strftime(self.min_time, "%d-%m-%Y")}")')
 
 
-def sort_closest(now: datetime.datetime, bets: Iterable[Bet]) -> List[Bet]:
-    return sorted(bets, key=lambda b: b.timedelta(now))
+def sort_closest(target: datetime.datetime, bets: Iterable[Bet]) -> List[Bet]:
+    return sorted(bets, key=lambda b: b.timedelta(target))
 
 
-def print_winner():
+def load_bets(bets_filename):
     bets = []
     with open('bets.csv', 'r') as csvfile:
         reader = csv.reader(csvfile)
         for person, date in reader:
             bets.append(Bet(person, date))
+    return bets
 
+def print_winner(target, bets_filename):
+    bets = load_bets(bets_filename)
 
     # Bets sorted chronologically
     bets_sorted = sorted(bets, key=lambda b: b.min_time)
 
-    # TODO: allow for user-specified time
-    now = datetime.datetime.now()
 
-    bets_sorted_closest = sort_closest(now, bets)
+    bets_sorted_closest = sort_closest(target, bets)
     winning_bet = bets_sorted_closest[0]
-    print(f"Closest: {winning_bet}, distance: {winning_bet.timedelta(now)}")
+    print(f"Closest: {winning_bet}, with a distance of {winning_bet.timedelta(target)}")
 
     winner_index = bets_sorted.index(winning_bet)
     if winner_index > 0:
@@ -52,5 +61,15 @@ def print_winner():
 
 
 if __name__ == "__main__":
-    print_winner()
+    parser = argparse.ArgumentParser(description='Decide who wins the Coronavirus bet')
+    parser.add_argument('when', help="'dd-mm-yyyyThh:mm' OR now")
+    parser.add_argument('--bets-file', default='bets.csv', help="The csv containing bets" )
+    args = parser.parse_args()
+
+    if args.when == 'now':
+        target = datetime.datetime.now()
+    else:
+        target = datetime.datetime.strptime(args.when, "%d-%m-%YT%H:%M")
+
+    print_winner(target, args.bets_file)
 
