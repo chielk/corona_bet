@@ -1,3 +1,4 @@
+import sys
 import csv
 import datetime
 import argparse
@@ -76,8 +77,23 @@ def print_winner(target, bets_filename):
 
     bets_sorted_closest = sort_closest(target, bets)
     winning_bet = bets_sorted_closest[0]
-    print(f"Closest: {winning_bet}, with a distance of {winning_bet.timedelta(target)}")
+    timedelta = winning_bet.timedelta(target)
 
+    # Format difference
+    days = timedelta.days
+    hours = timedelta.seconds // 3600
+    components = []
+    if days:
+        components.append(f"{days} days")
+    if hours:
+        components.append(f"{hours} hours")
+    if components:
+        difference = " and ".join(components)
+    else:
+        difference = "0"
+    print(f"Closest: {winning_bet}, with a time difference of {difference}")
+
+    # Losers
     winner_index = bets_sorted.index(winning_bet)
     if winner_index > 0:
         print("No longer elegible to win:")
@@ -94,23 +110,30 @@ def parse_time(when: str):
             return datetime.datetime.strptime(args.when, date_format)
         except ValueError:
             pass
-    raise ValueError(f"Unable to parse date: {when}")
+    raise ValueError(f'Unable to parse date: "{when}"')
 
 
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Decide who wins the Coronavirus bet')
-    parser.add_argument('when', help="'dd-mm-yyyyThh:mm' OR now")
-    parser.add_argument('--bets-file', default='bets.csv', help="The csv containing bets" )
+    parser = argparse.ArgumentParser(
+            description='Decide who wins the Coronavirus bet')
+    parser.add_argument('when', help="'dd-mm-yyyyThh:mm' OR now",
+                        nargs="?", default="now")
+    parser.add_argument('--bets-file', help="The csv containing bets",
+                        default='bets.csv')
     args = parser.parse_args()
 
     if args.when == 'now':
         target = datetime.datetime.now()
     else:
-        target = parse_time(args.when)
+        try:
+            target = parse_time(args.when)
+        except ValueError as err:
+            print(err, file=sys.stderr)
+            sys.exit(1)
         day, opening_time = get_opening_time(target)
-        print(f"Opening time on {day} is {opening_time}.")
+        print(f"Opening time on {day} is {opening_time}")
         target += opening_time
     print_winner(target, args.bets_file)
 
