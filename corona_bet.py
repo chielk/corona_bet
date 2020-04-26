@@ -7,6 +7,31 @@ from typing import Iterable, List, Tuple, Union
 timespan = Tuple[datetime.datetime, datetime.datetime]
 
 
+def get_opening_time(date: datetime.datetime):
+    """
+    Monday	1pm     0
+    Tuesday	1pm     1
+    Wednesday   1pm     2
+    Thursday    1pm     3
+    Friday	12pm    4
+    Saturday    12pm    5
+    Sunday      12pm    6
+    """
+    day_names = {0: "Monday",
+                 1: "Tuesday",
+                 2: "Wednesday",
+                 3: "Thursday",
+                 4: "Friday",
+                 5: "Saturday",
+                 6: "Sunday"
+                }
+    if (weekday := date.weekday()) < 4:
+        return day_names[weekday], datetime.timedelta(hours=13)
+    else:
+        return day_names[weekday], datetime.timedelta(hours=12)
+
+
+
 class Bet:
     def __init__(self, person: str, date: str):
         self.person = person
@@ -16,7 +41,7 @@ class Bet:
 
     def timedelta(self, time: datetime.datetime):
         if self.min_time < time < self.max_time:
-            return 0
+            return datetime.timedelta()
         if time < self.min_time:
             return self.min_time - time
         return time - self.max_time
@@ -60,6 +85,20 @@ def print_winner(target, bets_filename):
             print(bet)
 
 
+def parse_time(when: str):
+    formats = [ "%d-%m-%Y",
+               "%d/%m/%Y",
+              ]
+    for date_format in formats:
+        try:
+            return datetime.datetime.strptime(args.when, date_format)
+        except ValueError:
+            pass
+    raise ValueError(f"Unable to parse date: {when}")
+
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Decide who wins the Coronavirus bet')
     parser.add_argument('when', help="'dd-mm-yyyyThh:mm' OR now")
@@ -69,7 +108,9 @@ if __name__ == "__main__":
     if args.when == 'now':
         target = datetime.datetime.now()
     else:
-        target = datetime.datetime.strptime(args.when, "%d-%m-%YT%H:%M")
-
+        target = parse_time(args.when)
+        day, opening_time = get_opening_time(target)
+        print(f"Opening time on {day} is {opening_time}.")
+        target += opening_time
     print_winner(target, args.bets_file)
 
